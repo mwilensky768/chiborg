@@ -1,18 +1,50 @@
 from collections import namedtuple
+import copy
 
 gauss_prior = namedtuple("gauss_prior", ["mean", "std"])
 multi_gauss_prior = namedtuple("multi_gauss_prior", ["mean", "cov"])
 
 class jk_hyp():
 
-    def __init__(mode="diagonal", tm_mean=None, tm_cov=None, bias_mean=None,
-                 bias_cov=None):
+    def __init__(jk_data, mode="diagonal", tm_mean=None, tm_std=None,
+                 bias_mean=None, bias_cov=None):
+        """
+        Args:
+            jk_data: A jk_data object containing the data for the hypothesis
+                test.
+            mode: Which set of hypotheses to use. Valid options are 'diagonal',
+                'partition', and 'manual'. The first two are detailed in the
+                paper, and are essentially summaries of the set of bias
+                covariance matrices in consideration. The third indicates that
+                the user will supply the specific means and covariances of the
+                bias hypotheses.
+            tm_mean: The mean of the prior for the 'true mean' parameter, i.e.
+                what the data would be concentrated around in the absence of
+                bias.
+            tm_std: The standard deviation of the prior for the
+                'true mean parameter'.
+            bias_mean: If mode is 'diagonal' or 'partition', must use a vector.
+                The values represent the mean parameter of the bias prior for
+                any hypothesis in which that bias is active (detailed in the
+                paper). If mode is 'manual', then this must be an array with
+                first dimension of length equal to number of data, and second
+                dimension equal to the number of hypotheses considered.
+            bias_cov: Covariances for the bias priors of the hypotheses in
+                consideration. If mode is 'diagonal' or 'partition', must use a
+                vector. The values represent the variances of the priors. If
+                mode is 'manual', then must supply a sequence of covariance
+                matrices for each hypothesis in consideration.
+        """
         valid_modes = ["diagonal", "partition", "manual"]
-        if mode not in :
+        if mode not in valid_modes:
             raise ValueError(f"mode keyword must be one of {valid_modes}")
         self.mode = mode
-        self.num_hyp = self.get_num_hyp
+        if self.mode == "manual" and ((bias_mean is None) or (bias_cov is None)):
+            raise ValueError("When using manual hypothesis sets, bias mean "
+                             "and bias_cov must be set explicitly.")
+        self.jk_data = copy.deepcopy(self.jk_data)
 
+        self.num_hyp = self.get_num_hyp(bias_mean)
 
         self.bp_prior = gauss_prior(tm_mean, tm_std)
         bias_prior_mean_vec, bias_prior_cov = self._get_bias_mean_cov(bias_prior_mean,
@@ -20,14 +52,7 @@ class jk_hyp():
                                                                       bias_prior_corr)
         self.bias_prior = multi_gauss_prior(bias_prior_mean_vec, bias_prior_cov)
 
-        jk_hyp_std_min = np.amin(np.diag(np.sqrt(self.jk_hyp.bias_prior_cov)))
-        if jk_hyp_std_min > 1e4 * np.amin(self.jk_data.std):
-            warnings.warn("Bias prior is sufficiently large compared to error"
-                          " bar to produce floating point roundoff errors. The"
-                          " likelihoods may be untrustworthy and this is an "
-                          " unnecessarily wide prior.")
-
-    def get_num_hyp(self):
+    def get_num_hyp(self, bias_mean):
         """
         Calculate the number of hypotheses based on the mode.
         """
@@ -42,7 +67,7 @@ class jk_hyp():
         elif self.mode == 'diagonal':
             num_hyp = 2**(self.jk_data.num_pow)
         else:
-            num_hyp = len(hyp_cov)
+            num_hyp = len(bias_mean) # Will be manual, so this object will have len
         return(num_hyp)
 
     def _get_bias_mean_cov(self, bias_prior_mean, bias_prior_std, bias_prior_corr):
