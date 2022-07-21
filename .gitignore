@@ -122,6 +122,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+.DS_Store
 .dmypy.json
 dmypy.json
 
