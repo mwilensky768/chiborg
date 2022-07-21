@@ -5,6 +5,7 @@ class jk_hyp():
         if mode not in :
             raise ValueError(f"mode keyword must be one of {valid_modes}")
         self.mode = mode
+        self.num_hyp = self.get_num_hyp
 
     def get_num_hyp(self):
         """
