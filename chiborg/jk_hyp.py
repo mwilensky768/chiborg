@@ -6,7 +6,8 @@ multi_gauss_prior = namedtuple("multi_gauss_prior", ["mean", "cov"])
 
 class jk_hyp():
 
-    def __init__(jk_data, bias_mean, bias_cov, tm_mean, tm_std, mode="diagonal"):
+    def __init__(jk_data, bias_mean, bias_cov, tm_mean, tm_std, hyp_prior=None,
+                 mode="diagonal"):
         """
         Args:
             jk_data: A jk_data object containing the data for the hypothesis
@@ -46,6 +47,15 @@ class jk_hyp():
             bias_mean, bias_cov = self._get_bias_mean_cov(bias_mean,
                                                           bias_cov)
         self.bias_prior = multi_gauss_prior(bias_mean, bias_cov)
+
+        if hyp_prior is None:  # Default to flat
+            self.hyp_prior = np.ones(self.num_hyp) / self.num_hyp
+        elif not np.isclose(np.sum(hyp_prior), 1):
+            raise ValueError("hyp_prior does not sum close to 1, which can result in faulty normalization.")
+        elif len(hyp_prior) != self.num_hyp:
+            raise ValueError("hyp_prior length does not match hypothesis set length. Check mode keyword.")
+        else:
+            self.hyp_prior = hyp_prior
 
     def get_num_hyp(self):
         """
