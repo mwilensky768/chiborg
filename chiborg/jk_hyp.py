@@ -1,5 +1,9 @@
 from collections import namedtuple
 import copy
+from scipy.special import comb
+from itertools import combinations
+from more_itertools import set_partitions
+from more_itertools.recipes import powerset
 
 gauss_prior = namedtuple("gauss_prior", ["mean", "std"])
 multi_gauss_prior = namedtuple("multi_gauss_prior", ["mean", "cov"])

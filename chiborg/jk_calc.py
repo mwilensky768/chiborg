@@ -2,11 +2,7 @@ import numpy as np
 from scipy.stats import norm, multivariate_normal
 from scipy.sparse import block_diag
 from scipy.integrate import quad_vec
-from scipy.special import comb
 from scipy.linalg import LinAlgError
-from itertools import combinations, chain
-from more_itertools import set_partitions
-from more_itertools.recipes import powerset
 import copy
 import warnings
 
@@ -45,7 +41,7 @@ class jk_calc():
 
     def get_like(self):
         """
-        Get the likelihoods for each of the null hypotheses.
+        Get the likelihoods for each of the hypotheses.
         """
 
         like = np.zeros([self.jk_hyp.num_hyp, self.jk_data.num_draw])
