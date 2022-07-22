@@ -2,7 +2,7 @@ import numpy as np
 
 class jk_data():
 
-    def __init__(self, simulate=True, mean=1, std=1, bias=0, num_pow=4,
+    def __init__(self, simulate=True, mean=1, std=1, bias=0, num_dat=4,
                  num_draw=int(1e6), bp_meas=None):
         """
         Container for holding data and covariance (i.e. what is conditioned on)
@@ -12,8 +12,8 @@ class jk_data():
             mean: The unbiased mean of the bandpower draws
             std: The standard deviation of the bandpower draws
             bias: An optional bias to add to the mean
-            num_pow: Number of bandpowers to draw in a single group
-            num_draw: Number of draws to do of length num_pow
+            num_dat: Number of bandpowers to draw in a single group
+            num_draw: Number of draws to do of length num_dat
             bp_meas: Some measured bandpowers, if not simulating.
 
         Attributes:
@@ -34,18 +34,18 @@ class jk_data():
             warnings.warn("Casting num_draw parameter as an integer")
             num_samp = int(num_draw)
 
-        if not isinstance(num_pow, int):
-            warnings.warn("Casting num_pow parameter as an integer")
-            num_pow = int(num_pow)
+        if not isinstance(num_dat, int):
+            warnings.warn("Casting num_dat parameter as an integer")
+            num_dat = int(num_dat)
 
         if "__iter__" in dir(std):
             if not isinstance(std, np.ndarray):
                 warnings.warn("Casting std parameter as an array")
                 std = np.array(std)
 
-        self.num_pow = num_pow
+        self.num_dat = num_dat
         self.num_draw = num_draw
-        self.dat_shape = (num_draw, num_pow)
+        self.dat_shape = (num_draw, num_dat)
 
         self.mean = mean
         self.std = std
@@ -64,4 +64,4 @@ class jk_data():
             self.bp_draws = bp_meas_arr[np.newaxis, :]
             shape_match = self.bp_draws.shape == self.dat_shape
             if not shape_match:
-                raise ValueError("User must supply 1-dimensional input for bp_meas of length num_pow.")
+                raise ValueError("User must supply 1-dimensional input for bp_meas of length num_dat.")
