@@ -6,58 +6,53 @@ multi_gauss_prior = namedtuple("multi_gauss_prior", ["mean", "cov"])
 
 class jk_hyp():
 
-    def __init__(jk_data, mode="diagonal", tm_mean=None, tm_std=None,
-                 bias_mean=None, bias_cov=None):
+    def __init__(jk_data, bias_mean, bias_cov, tm_mean, tm_std, mode="diagonal"):
         """
         Args:
             jk_data: A jk_data object containing the data for the hypothesis
                 test.
+            bias_mean: If mode is 'diagonal' or 'partition', must use a vector.
+                The values represent the mean parameter of the bias prior for
+                any hypothesis in which that bias is active (detailed in the
+                paper). If mode is 'manual', then this must be an array with
+                first dimension of length equal to number of hypotheses
+                considered, and second dimension equal to the number of data.
+            bias_cov: Covariances for the bias priors of the hypotheses in
+                consideration. If mode is 'diagonal' or 'partition', must use a
+                vector. The values represent the variances of the priors. If
+                mode is 'manual', then must supply a sequence of covariance
+                matrices for each hypothesis in consideration.
+            tm_mean: The mean of the prior for the 'true mean' parameter, i.e.
+                what the data would be concentrated around in the absence of
+                bias.
+            tm_std: The standard deviation of the prior for the
+                'true mean parameter'.
             mode: Which set of hypotheses to use. Valid options are 'diagonal',
                 'partition', and 'manual'. The first two are detailed in the
                 paper, and are essentially summaries of the set of bias
                 covariance matrices in consideration. The third indicates that
                 the user will supply the specific means and covariances of the
                 bias hypotheses.
-            tm_mean: The mean of the prior for the 'true mean' parameter, i.e.
-                what the data would be concentrated around in the absence of
-                bias.
-            tm_std: The standard deviation of the prior for the
-                'true mean parameter'.
-            bias_mean: If mode is 'diagonal' or 'partition', must use a vector.
-                The values represent the mean parameter of the bias prior for
-                any hypothesis in which that bias is active (detailed in the
-                paper). If mode is 'manual', then this must be an array with
-                first dimension of length equal to number of data, and second
-                dimension equal to the number of hypotheses considered.
-            bias_cov: Covariances for the bias priors of the hypotheses in
-                consideration. If mode is 'diagonal' or 'partition', must use a
-                vector. The values represent the variances of the priors. If
-                mode is 'manual', then must supply a sequence of covariance
-                matrices for each hypothesis in consideration.
         """
         valid_modes = ["diagonal", "partition", "manual"]
         if mode not in valid_modes:
             raise ValueError(f"mode keyword must be one of {valid_modes}")
         self.mode = mode
-        if self.mode == "manual" and ((bias_mean is None) or (bias_cov is None)):
-            raise ValueError("When using manual hypothesis sets, bias mean "
-                             "and bias_cov must be set explicitly.")
         self.jk_data = copy.deepcopy(self.jk_data)
-
-        self.num_hyp = self.get_num_hyp(bias_mean)
+        self.num_hyp = self.get_num_hyp()
 
         self.bp_prior = gauss_prior(tm_mean, tm_std)
-        bias_prior_mean_vec, bias_prior_cov = self._get_bias_mean_cov(bias_prior_mean,
-                                                                      bias_prior_std,
-                                                                      bias_prior_corr)
+        if self.mode != "manual":
+            bias_mean, bias_cov = self._get_bias_mean_cov(bias_mean,
+                                                          bias_cov)
         self.bias_prior = multi_gauss_prior(bias_prior_mean_vec, bias_prior_cov)
 
-    def get_num_hyp(self, bias_mean):
+    def get_num_hyp(self):
         """
         Calculate the number of hypotheses based on the mode.
         """
         if self.mode == 'partition': # Calculate the (N + 1)th Bell Number
-            M = self.jk_data.num_pow + 1
+            M = self.jk_data.num_dat + 1
             B = np.zeros(M + 1, dtype=int)
             B[0] = 1  # NEED THE SEED
             for n in range(M):
@@ -65,16 +60,14 @@ class jk_hyp():
                     B[n + 1] += comb(n, k, exact=True) * B[k]
             num_hyp = B[M]
         elif self.mode == 'diagonal':
-            num_hyp = 2**(self.jk_data.num_pow)
+            num_hyp = 2**(self.jk_data.num_dat)
         else:
-            num_hyp = len(bias_mean) # Will be manual, so this object will have len
+            num_hyp = self.jk_data.num_dat # Will be manual, so this object will have len
         return(num_hyp)
 
-    def _get_bias_mean_cov(self, bias_prior_mean, bias_prior_std, bias_prior_corr):
-        if not hasattr(bias_prior_mean, "__iter__"):
-            bias_prior_mean = np.repeat(bias_prior_mean, 4)
-        if not hasattr(bias_prior_std, "__iter__"):
-            bias_prior_std = np.repeat(bias_prior_std, 4)
+    def _get_bias_mean_cov(self, bias_mean, bias_cov):
+        if self.mode == "manual":
+            bias_mean =
         bias_cov_shape = [self.num_hyp, self.jk_data.num_pow, self.jk_data.num_pow]
         bias_cov = np.zeros(bias_cov_shape)
         bias_mean = np.zeros([self.num_hyp, self.jk_data.num_pow])
@@ -84,12 +77,12 @@ class jk_hyp():
         ###
         diag_val = bias_prior_std**2
         hyp_ind = 0
-        if self.mode in ["full", "diagonal"]:
+        if self.mode in ["partition", "diagonal"]:
             for diag_on in powerset(range(self.jk_data.num_pow)):
                 N_on = len(diag_on)
                 if N_on == 0:  # Null hypothesis - all 0 cov. matrix
                     hyp_ind += 1
-                elif self.mode == "full":
+                elif self.mode == "partition":
                     parts = set_partitions(diag_on)  # Set of partitionings
                     for part in parts:  # Loop over partitionings
                         bias_cov[hyp_ind, diag_on, diag_on] = diag_val[np.array(diag_on)]
