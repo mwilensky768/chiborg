@@ -48,7 +48,7 @@ setup_args = {
         "write_to": "chiborg/version.py",
         "local_scheme": branch_scheme,
     },
-    'install_requires': ['numpy', 'scipy'],
+    'install_requires': ['numpy', 'scipy', 'more-itertools'],
     'zip_safe': False,
 }
 
