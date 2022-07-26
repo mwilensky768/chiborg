@@ -5,6 +5,7 @@ from itertools import combinations
 from more_itertools import set_partitions
 from more_itertools.recipes import powerset
 from scipy.stats import norm
+import numpy as np
 
 gauss_prior = namedtuple("gauss_prior", ["func", "bounds", "params"])
 multi_gauss_prior = namedtuple("multi_gauss_prior", ["mean", "cov"])
