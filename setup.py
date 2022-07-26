@@ -8,7 +8,7 @@ def branch_scheme(version):
     """
     Local version scheme that adds the branch name for absolute reproducibility.
     If and when this is added to setuptools_scm this function and file can be removed.
-    Reproduced from SSINS (this fn. originally written by P. LaPlant.)
+    Reproduced from SSINS (this fn. originally written by P. Laplant.)
     """
     if version.exact or version.node is None:
         return version.format_choice("", "+d{time:{time_format}}", time_format="%Y%m%d")
