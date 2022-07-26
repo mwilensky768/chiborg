@@ -9,7 +9,7 @@ import warnings
 
 class jk_calc():
 
-    def __init__(self, jk_data, jk_hyp, hyp_prior=None, analytic=True):
+    def __init__(self, jk_data, jk_hyp, analytic=True):
         """
         Class for containing jackknife parameters and doing calculations of
         various test statistics.
