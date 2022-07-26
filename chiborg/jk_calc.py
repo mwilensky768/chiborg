@@ -1,4 +1,4 @@
-self.jk_hyp.tm_prior.params["loc"]import numpy as np
+import numpy as np
 from scipy.stats import norm, multivariate_normal
 from scipy.sparse import block_diag
 from scipy.integrate import quad_vec
