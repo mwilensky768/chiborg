@@ -1,4 +1,4 @@
-import numpy as np
+self.jk_hyp.tm_prior.params["loc"]import numpy as np
 from scipy.stats import norm, multivariate_normal
 from scipy.sparse import block_diag
 from scipy.integrate import quad_vec
@@ -32,6 +32,9 @@ class jk_calc():
                           " unnecessarily wide prior.")
 
         self.analytic = analytic
+        if self.analytic and (self.jk_hyp.tm_prior.func != norm):
+            raise ValueError("Must use normal prior if asking for analytic "
+                             "marginalization.")
         self.noise_cov = self._get_noise_cov()
 
         self.like, self.entropy = self.get_like()
@@ -70,17 +73,17 @@ class jk_calc():
         return(mod_var, cov_sum_inv, cov_sum)
 
     def _get_middle_cov(self, mod_var):
-        if self.bp_prior.std == 0:
+        if self.jk_hyp.tm_prior.params["scale"] == 0:
             prec_sum = np.inf
         else:
-            prec_sum = 1 / mod_var + 1 / self.bp_prior.std**2
+            prec_sum = 1 / mod_var + 1 / self.jk_hyp.tm_prior.params["scale"]**2
         middle_C = np.ones([self.jk_data.num_dat, self.jk_data.num_dat]) / prec_sum
         return(middle_C)
 
     def _get_like_analytic(self, hyp_ind):
 
         mod_var, cov_sum_inv, _ = self._get_mod_var_cov_sum_inv(hyp_ind)
-        mu_prime = self.jk_hyp.bias_prior.mean[hyp_ind] + np.repeat(self.bp_prior.mean, self.jk_data.num_dat)
+        mu_prime = self.jk_hyp.bias_prior.mean[hyp_ind] + np.repeat(self.jk_hyp.tm_prior.params["loc"], self.jk_data.num_dat)
         middle_C = self._get_middle_cov(mod_var)
 
         cov_inv_adjust = cov_sum_inv @ middle_C @ cov_sum_inv
@@ -98,7 +101,7 @@ class jk_calc():
             gauss_1 = multivariate_normal.pdf(self.jk_data.bp_draws - self.jk_hyp.bias_prior.mean[hyp_ind],
                                               mean=x * np.ones(self.jk_data.num_dat),
                                               cov=cov_sum)
-            gauss_2 = norm.pdf(x, loc=self.bp_prior.mean, scale=self.bp_prior.std)
+            gauss_2 = self.jk_hyp.tm_prior.func(x, **self.jk_hyp.tm_prior.params)
 
             return(gauss_1 * gauss_2)
 
@@ -108,7 +111,12 @@ class jk_calc():
 
         integrand_func = self._get_integr(hyp_ind)
 
-        integral = quad_vec(integrand_func, -np.inf, np.inf)[0]
+        integral, err, info = quad_vec(integrand_func,
+                                       self.jk_hyp.tm_prior.bounds,
+                                       full_output=True)
+        if not info["success"]:
+            warnings.warn("Numerical integration flagged as unsuccessful. "
+                          "Results may be untrustworthy.")
 
         return(integral)
 
@@ -129,7 +137,7 @@ class jk_calc():
             num_draw: How many bandpowers to simulate per hypothesis
         """
         bp_list = []
-        mean = np.random.normal(loc=self.bp_prior.mean, scale=self.bp_prior.std,
+        mean = np.random.normal(loc=self.jk_hyp.tm_prior.params["loc"], scale=self.jk_hyp.tm_prior.params["scale"],
                                 size=[num_draw, self.jk_hyp.num_hyp, self.jk_data.num_dat])
         bias = np.random.multivariate_normal(mean=self.jk_hyp.bias_prior.mean,
                                              cov=block_diag(self.jk_hyp.bias_prior.cov),

@@ -4,14 +4,17 @@ from scipy.special import comb
 from itertools import combinations
 from more_itertools import set_partitions
 from more_itertools.recipes import powerset
+from scipy.stats import norm
 
-gauss_prior = namedtuple("gauss_prior", ["mean", "std"])
+gauss_prior = namedtuple("gauss_prior", ["func", "bounds", "params"])
 multi_gauss_prior = namedtuple("multi_gauss_prior", ["mean", "cov"])
 
 class jk_hyp():
 
-    def __init__(jk_data, bias_mean, bias_cov, tm_mean, tm_std, hyp_prior=None,
-                 mode="diagonal"):
+    def __init__(jk_data, bias_mean, bias_cov,
+                 tm_prior=gauss_prior(norm.pdf, [-np.inf, np.inf],
+                                      {"loc": 0, "scale": 0}),
+                 hyp_prior=None, mode="diagonal"):
         """
         Args:
             jk_data: A jk_data object containing the data for the hypothesis
@@ -27,11 +30,9 @@ class jk_hyp():
                 vector. The values represent the variances of the priors. If
                 mode is 'manual', then must supply a sequence of covariance
                 matrices for each hypothesis in consideration.
-            tm_mean: The mean of the prior for the 'true mean' parameter, i.e.
-                what the data would be concentrated around in the absence of
-                bias.
-            tm_std: The standard deviation of the prior for the
-                'true mean parameter'.
+            tm_prior: namedtuple containing a function to be evaluated for
+                numerical marginalization over the true mean prior as well as
+                the integration bounds and any parameters that the prior has.
             mode: Which set of hypotheses to use. Valid options are 'diagonal',
                 'partition', and 'manual'. The first two are detailed in the
                 paper, and are essentially summaries of the set of bias
@@ -46,11 +47,11 @@ class jk_hyp():
         self.jk_data = copy.deepcopy(self.jk_data)
         self.num_hyp = self.get_num_hyp()
 
-        self.bp_prior = gauss_prior(tm_mean, tm_std)
         if self.mode != "manual":
             bias_mean, bias_cov = self._get_bias_mean_cov(bias_mean,
                                                           bias_cov)
         self.bias_prior = multi_gauss_prior(bias_mean, bias_cov)
+        self.tm_prior = tm_prior
 
         if hyp_prior is None:  # Default to flat
             self.hyp_prior = np.ones(self.num_hyp) / self.num_hyp
