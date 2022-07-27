@@ -2,22 +2,24 @@ import numpy as np
 
 class jk_data():
 
-    def __init__(self, simulate=True, mean=1, std=1, bias=0, num_dat=4,
-                 num_draw=int(1e6), bp_meas=None):
+    def __init__(self, simulate=True, sim_mean=np.zeros(2), sim_cov=np.eye(2),
+                 sim_bias=np.zeros(2), num_dat=2, num_draw=int(1e6),
+                 meas_dat=None):
         """
-        Container for holding data and covariance (i.e. what is conditioned on)
+        Container for holding data and covariance (i.e. what is conditioned on
+        formalism)
 
         Parameters:
-            simulate: Whether to simulate bandpower draws
-            mean: The unbiased mean of the bandpower draws
-            std: The standard deviation of the bandpower draws
-            bias: An optional bias to add to the mean
-            num_dat: Number of bandpowers to draw in a single group
+            simulate: Whether to simulate data draws
+            sim_mean: The unbiased mean of the data draws
+            sim_cov: The data covariance
+            sim_bias: An optional bias vector to add to the mean
+            num_dat: Number of data to draw in a single group
             num_draw: Number of draws to do of length num_dat
-            bp_meas: Some measured bandpowers, if not simulating.
+            meas_dat: Some measured data, if not simulating.
 
         Attributes:
-            bp_draws: An array of draws from a gaussian with parameters
+            data_draws: An array of draws from a gaussian with parameters
                 described by the class parameters, OR an array of measured
                 bandpowers.
         """
@@ -53,15 +55,15 @@ class jk_data():
 
         if simulate:
             self.simulated = True
-            self.bp_draws = np.random.normal(loc=self.mean + self.bias,
-                                             scale=self.std,
-                                             size=self.dat_shape)
+            self.data_draws = np.random.normal(loc=self.mean + self.bias,
+                                               scale=self.std,
+                                               size=self.dat_shape)
         else:
             self.simulated = False
             if self.num_draw > 1:
                 raise ValueError("num_draw must be set to 1 for measured bandpowers.")
             bp_meas_arr = np.array(bp_meas)
-            self.bp_draws = bp_meas_arr[np.newaxis, :]
+            self.data_draws = bp_meas_arr[np.newaxis, :]
             shape_match = self.bp_draws.shape == self.dat_shape
             if not shape_match:
                 raise ValueError("User must supply 1-dimensional input for bp_meas of length num_dat.")

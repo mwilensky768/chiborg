@@ -88,7 +88,7 @@ class jk_calc():
 
         cov_inv_adjust = cov_sum_inv @ middle_C @ cov_sum_inv
         C_prime = np.linalg.inv(cov_sum_inv - cov_inv_adjust)
-        like = multivariate_normal(mean=mu_prime, cov=C_prime).pdf(self.jk_data.bp_draws)
+        like = multivariate_normal(mean=mu_prime, cov=C_prime).pdf(self.jk_data.data_draws)
         entropy = multivariate_normal(mean=mu_prime, cov=C_prime).entropy() / np.log(2)
 
         return(like, entropy)
@@ -98,7 +98,7 @@ class jk_calc():
         _, _, cov_sum = self._get_mod_var_cov_sum_inv(hyp_ind)
 
         def integrand(x):
-            gauss_1 = multivariate_normal.pdf(self.jk_data.bp_draws - self.jk_hyp.bias_prior.mean[hyp_ind],
+            gauss_1 = multivariate_normal.pdf(self.jk_data.data_draws - self.jk_hyp.bias_prior.mean[hyp_ind],
                                               mean=x * np.ones(self.jk_data.num_dat),
                                               cov=cov_sum)
             gauss_2 = self.jk_hyp.tm_prior.func(x, **self.jk_hyp.tm_prior.params)
