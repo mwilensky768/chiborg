@@ -40,11 +40,6 @@ class jk_data():
             warnings.warn("Casting num_dat parameter as an integer")
             num_dat = int(num_dat)
 
-        if "__iter__" in dir(std):
-            if not isinstance(std, np.ndarray):
-                warnings.warn("Casting std parameter as an array")
-                std = np.array(std)
-
         self.num_dat = num_dat
         self.num_draw = num_draw
         self.dat_shape = (num_draw, num_dat)
