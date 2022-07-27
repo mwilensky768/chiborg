@@ -24,8 +24,8 @@ class jk_data():
                 bandpowers.
         """
 
-        neither = ((bp_meas is None) and (not simulate))
-        both = ((bp_meas is not None) and simulate)
+        neither = ((meas_dat is None) and (not simulate))
+        both = ((meas_dat is not None) and simulate)
         if neither:
             raise ValueError("User must supply measured bandpowers if simulate is False")
         elif both:
@@ -62,8 +62,8 @@ class jk_data():
             self.simulated = False
             if self.num_draw > 1:
                 raise ValueError("num_draw must be set to 1 for measured bandpowers.")
-            bp_meas_arr = np.array(bp_meas)
-            self.data_draws = bp_meas_arr[np.newaxis, :]
+            meas_dat_arr = np.array(meas_dat)
+            self.data_draws = meas_dat_arr[np.newaxis, :]
             shape_match = self.bp_draws.shape == self.dat_shape
             if not shape_match:
-                raise ValueError("User must supply 1-dimensional input for bp_meas of length num_dat.")
+                raise ValueError("User must supply 1-dimensional input for meas_dat of length num_dat.")
