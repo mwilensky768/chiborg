@@ -49,15 +49,15 @@ class jk_data():
         self.num_draw = num_draw
         self.dat_shape = (num_draw, num_dat)
 
-        self.mean = mean
-        self.std = std
-        self.bias = bias
+        self.sim_mean = sim_mean
+        self.sim_cov= sim_cov
+        self.sim_bias = sim_bias
 
         if simulate:
             self.simulated = True
-            self.data_draws = np.random.normal(loc=self.mean + self.bias,
-                                               scale=self.std,
-                                               size=self.dat_shape)
+            self.data_draws = np.random.multivariate_normal(mean=self.sim_mean + self.sim_bias,
+                                                            cov=self.sim_cov,
+                                                            size=self.num_draw)
         else:
             self.simulated = False
             if self.num_draw > 1:
