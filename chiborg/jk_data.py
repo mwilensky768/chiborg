@@ -71,6 +71,6 @@ class jk_data():
         """
         std_gauss = np.random.normal(size=[self.num_draw, self.num_dat])
         cho = cholesky(self.sim_cov, lower=False)
-        draws = std_gauss@cho
+        draws = std_gauss@cho + self.sim_mean + self.sim_bias
 
         return(draws)
