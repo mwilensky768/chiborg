@@ -12,7 +12,7 @@ multi_gauss_prior = namedtuple("multi_gauss_prior", ["mean", "cov"])
 
 class jk_hyp():
 
-    def __init__(jk_data, bias_mean, bias_cov,
+    def __init__(self, jk_data, bias_mean, bias_cov,
                  tm_prior=gauss_prior(norm.pdf, [-np.inf, np.inf],
                                       {"loc": 0, "scale": 0}),
                  hyp_prior=None, mode="diagonal"):
