@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.linalg import cholesky
 
 class jk_data():
 
@@ -50,9 +51,7 @@ class jk_data():
 
         if simulate:
             self.simulated = True
-            self.data_draws = np.random.multivariate_normal(mean=self.sim_mean + self.sim_bias,
-                                                            cov=self.sim_cov,
-                                                            size=self.num_draw)
+            self.data_draws = self.sim_draws()
         else:
             self.simulated = False
             if self.num_draw > 1:
@@ -61,4 +60,17 @@ class jk_data():
             self.data_draws = meas_dat_arr[np.newaxis, :]
             shape_match = self.bp_draws.shape == self.dat_shape
             if not shape_match:
-                raise ValueError("User must supply 1-dimensional input for meas_dat of length num_dat.")
+                raise ValueError("User must supply 1-dimensional input for "
+                                 "meas_dat of length num_dat.")
+
+    def sim_draws(self):
+        """
+        Simulate draws according to the error covariance, mean, and bias. Uses
+        a standard multivariate gaussian sampling technique using Cholesky
+        factorization for the covariance matrix.
+        """
+        std_gauss = np.random.normal(size=[self.num_draw, self.num_dat])
+        cho = cholesky(self.sim_cov, lower=False)
+        draws = std_gauss@cho
+
+        return(draws)
