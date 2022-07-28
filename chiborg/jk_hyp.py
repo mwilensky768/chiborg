@@ -45,11 +45,11 @@ class jk_hyp():
         if mode not in valid_modes:
             raise ValueError(f"mode keyword must be one of {valid_modes}")
         self.mode = mode
-        self.jk_data = copy.deepcopy(self.jk_data)
+        self.jk_data = copy.deepcopy(jk_data)
         self.num_hyp = self.get_num_hyp()
 
         if self.mode != "manual":
-            bias_mean, bias_cov = self._get_bias_mean_cov(bias_mean,
+            bias_mean, bias_cov = self.get_bias_mean_cov(bias_mean,
                                                           bias_cov)
         self.bias_prior = multi_gauss_prior(bias_mean, bias_cov)
         self.tm_prior = tm_prior
@@ -104,7 +104,6 @@ class jk_hyp():
         ###
         # The matrices need to be transitive - this should be all of them. #
         ###
-        diag_val = bias_prior_std**2
         hyp_ind = 0
         for diag_on in powerset(range(self.jk_data.num_dat)):
             N_on = len(diag_on)
@@ -113,7 +112,7 @@ class jk_hyp():
             elif self.mode == "partition":
                 parts = set_partitions(diag_on)  # Set of partitionings
                 for part in parts:  # Loop over partitionings
-                    bias_cov_final[hyp_ind, diag_on, diag_on] = diag_val[np.array(diag_on)]
+                    bias_cov_final[hyp_ind, diag_on, diag_on] = bias_cov[np.array(diag_on)]
                     for sub_part in part:  # Loop over compartments to correlate them
                         off_diags = combinations(sub_part, 2)  # Get off-diagonal indices for this compartment
                         for pair in off_diags:  # Fill off-diagonal indices for this compartment
@@ -123,7 +122,7 @@ class jk_hyp():
                     bias_mean_final[hyp_ind, diag_on] = bias_mean[np.array(diag_on)]
                     hyp_ind += 1
             else:  # Mode must be diagonal
-                bias_cov_final[hyp_ind, diag_on, diag_on] = diag_val[np.array(diag_on)]
+                bias_cov_final[hyp_ind, diag_on, diag_on] = bias_cov[np.array(diag_on)]
                 bias_mean_final[hyp_ind, diag_on] = bias_mean[np.array(diag_on)]
                 hyp_ind += 1
 
