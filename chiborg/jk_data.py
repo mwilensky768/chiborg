@@ -3,7 +3,7 @@ from scipy.linalg import cholesky
 
 class jk_data():
 
-    def __init__(self, simulate=True, sim_mean=np.zeros(2), sim_cov=np.eye(2),
+    def __init__(self, simulate=True, sim_mean=np.zeros(2), noise_cov=np.eye(2),
                  sim_bias=np.zeros(2), num_dat=2, num_draw=int(1e6),
                  meas_dat=None):
         """
@@ -13,7 +13,7 @@ class jk_data():
         Parameters:
             simulate: Whether to simulate data draws
             sim_mean: The unbiased mean of the data draws
-            sim_cov: The data covariance
+            noise_cov: The data covariance
             sim_bias: An optional bias vector to add to the mean
             num_dat: Number of data to draw in a single group
             num_draw: Number of draws to do of length num_dat
@@ -46,7 +46,7 @@ class jk_data():
         self.dat_shape = (num_draw, num_dat)
 
         self.sim_mean = sim_mean
-        self.sim_cov= sim_cov
+        self.noise_cov= noise_cov
         self.sim_bias = sim_bias
 
         if simulate:
@@ -70,7 +70,7 @@ class jk_data():
         factorization for the covariance matrix.
         """
         std_gauss = np.random.normal(size=[self.num_draw, self.num_dat])
-        cho = cholesky(self.sim_cov, lower=False)
+        cho = cholesky(self.noise_cov, lower=False)
         draws = std_gauss@cho + self.sim_mean + self.sim_bias
 
         return(draws)

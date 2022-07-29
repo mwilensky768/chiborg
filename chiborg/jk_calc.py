@@ -24,18 +24,18 @@ class jk_calc():
         self.jk_data = copy.deepcopy(jk_data)
         self.jk_hyp = copy.deepcopy(jk_hyp)
 
-        jk_hyp_std_min = np.amin(np.diag(np.sqrt(self.jk_hyp.bias_prior_cov)))
-        if jk_hyp_std_min > 1e4 * np.amin(self.jk_data.std):
+        jk_hyp_cov_min = np.amin(np.diag(self.jk_hyp.bias_prior.cov[-1]))
+        jk_data_cov_min = np.amin(np.diag(self.jk_data.noise_cov))
+        if jk_hyp_cov_min > 1e8 * jk_data_cov_min:
             warnings.warn("Bias prior is sufficiently large compared to error"
                           " bar to produce floating point roundoff errors. The"
                           " likelihoods may be untrustworthy and this is an "
                           " unnecessarily wide prior.")
 
         self.analytic = analytic
-        if self.analytic and (self.jk_hyp.tm_prior.func != norm):
+        if self.analytic and (self.jk_hyp.tm_prior.func.__func__ != norm.pdf.__func__):
             raise ValueError("Must use normal prior if asking for analytic "
                              "marginalization.")
-        self.noise_cov = self._get_noise_cov()
 
         self.like, self.entropy = self.get_like()
         self.sum_entropy = self.jk_hyp.hyp_prior @ self.entropy
@@ -57,16 +57,8 @@ class jk_calc():
 
         return(like, entropy)
 
-    def _get_noise_cov(self):
-        # Assuming a scalar
-        if hasattr(self.jk_data.std, "__iter__"):  # Assume a vector
-            noise_cov = np.diag(self.jk_data.std**2)
-        else:
-            noise_cov = np.diag(np.repeat(self.jk_data.std**2, self.jk_data.num_dat))
-        return(noise_cov)
-
     def _get_mod_var_cov_sum_inv(self, hyp_ind):
-        cov_sum = self.noise_cov + self.jk_hyp.bias_prior.cov[hyp_ind]
+        cov_sum = self.jk_data.noise_cov + self.jk_hyp.bias_prior.cov[hyp_ind]
         cov_sum_inv = np.linalg.inv(cov_sum)
         mod_var = 1 / np.sum(cov_sum_inv)
 
@@ -128,24 +120,3 @@ class jk_calc():
         # Transpose to make shapes conform to numpy broadcasting
         post = (self.like.T * self.jk_hyp.hyp_prior).T / self.evid
         return(post)
-
-    def gen_bp_mix(self, num_draw):
-        """
-        Generate a mixture of bandpower objects in accordance with the priors.
-
-        Args:
-            num_draw: How many bandpowers to simulate per hypothesis
-        """
-        bp_list = []
-        mean = np.random.normal(loc=self.jk_hyp.tm_prior.params["loc"], scale=self.jk_hyp.tm_prior.params["scale"],
-                                size=[num_draw, self.jk_hyp.num_hyp, self.jk_data.num_dat])
-        bias = np.random.multivariate_normal(mean=self.jk_hyp.bias_prior.mean,
-                                             cov=block_diag(self.jk_hyp.bias_prior.cov),
-                                             size=num_draw).reshape([num_draw, self.jk_hyp.num_hyp, self.jk_data.num_dat])
-        std = self.jk_data.std
-        for hyp in range(self.jk_hyp.num_hyp):
-            bp = bandpower(mean=mean[:, hyp, :], std=std, num_draw=num_draw,
-                           bias=bias[:, hyp, :], num_dat=self.jk_data.num_dat)
-            bp_list.append(bp)
-
-        return(bp_list)
