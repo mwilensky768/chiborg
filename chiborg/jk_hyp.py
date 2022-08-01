@@ -57,9 +57,11 @@ class jk_hyp():
         if hyp_prior is None:  # Default to flat
             self.hyp_prior = np.ones(self.num_hyp) / self.num_hyp
         elif not np.isclose(np.sum(hyp_prior), 1):
-            raise ValueError("hyp_prior does not sum close to 1, which can result in faulty normalization.")
+            raise ValueError("hyp_prior does not sum close to 1, which can "
+                             "result in faulty normalization.")
         elif len(hyp_prior) != self.num_hyp:
-            raise ValueError("hyp_prior length does not match hypothesis set length. Check mode keyword.")
+            raise ValueError("hyp_prior length does not match hypothesis set "
+                             "length. Check mode keyword.")
         else:
             self.hyp_prior = hyp_prior
 

@@ -30,8 +30,9 @@ class jk_data():
         if neither:
             raise ValueError("User must supply measured bandpowers if simulate is False")
         elif both:
-            raise ValueError("Measured bandpowers have been supplied and simulate has been set to True."
-                             "User must either supply measured bandpowers or simulate them.")
+            raise ValueError("Measured data have been supplied and simulate has "
+                             "been set to True. User must either supply "
+                             "measured bandpowers or simulate them.")
 
         if not isinstance(num_draw, int):
             warnings.warn("Casting num_draw parameter as an integer")

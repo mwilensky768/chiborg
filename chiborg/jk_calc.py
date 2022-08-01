@@ -33,7 +33,8 @@ class jk_calc():
                           " unnecessarily wide prior.")
 
         self.analytic = analytic
-        if self.analytic and (self.jk_hyp.tm_prior.func.__func__ != norm.pdf.__func__):
+        gauss = (self.jk_hyp.tm_prior.func.__func__ == norm.pdf.__func__)
+        if self.analytic and (not gauss):
             raise ValueError("Must use normal prior if asking for analytic "
                              "marginalization.")
 
@@ -75,7 +76,8 @@ class jk_calc():
     def _get_like_analytic(self, hyp_ind):
 
         mod_var, cov_sum_inv, _ = self._get_mod_var_cov_sum_inv(hyp_ind)
-        mu_prime = self.jk_hyp.bias_prior.mean[hyp_ind] + np.repeat(self.jk_hyp.tm_prior.params["loc"], self.jk_data.num_dat)
+        mu_tm = np.full(self.jk_data.num_dat, self.jk_hyp.tm_prior.params["loc"])
+        mu_prime = self.jk_hyp.bias_prior.mean[hyp_ind] + mu_tm
         middle_C = self._get_middle_cov(mod_var)
 
         cov_inv_adjust = cov_sum_inv @ middle_C @ cov_sum_inv
@@ -90,8 +92,9 @@ class jk_calc():
         _, _, cov_sum = self._get_mod_var_cov_sum_inv(hyp_ind)
 
         def integrand(x):
-            gauss_1 = multivariate_normal.pdf(self.jk_data.data_draws - self.jk_hyp.bias_prior.mean[hyp_ind],
-                                              mean=x * np.ones(self.jk_data.num_dat),
+            gauss_1_arg = self.jk_data.data_draws - self.jk_hyp.bias_prior.mean[hyp_ind]
+            gauss_1 = multivariate_normal.pdf(gauss_1_arg,
+                                              mean=np.full(self.jk_data.num_dat, x),
                                               cov=cov_sum)
             gauss_2 = self.jk_hyp.tm_prior.func(x, **self.jk_hyp.tm_prior.params)
 
