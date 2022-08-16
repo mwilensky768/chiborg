@@ -50,7 +50,7 @@ class jk_hyp():
             raise ValueError(f"mode keyword must be one of {valid_modes}")
         self.mode = mode
         self.jk_data = copy.deepcopy(jk_data)
-        self.num_hyp = self.get_num_hyp()
+        self.num_hyp = self.get_num_hyp(bias_cov)
 
         if self.mode != "manual":
             bias_mean, bias_cov = self.get_bias_mean_cov(bias_mean,
@@ -69,9 +69,13 @@ class jk_hyp():
         else:
             self.hyp_prior = hyp_prior
 
-    def get_num_hyp(self):
+    def get_num_hyp(self, bias_cov):
         """
         Calculate the number of hypotheses based on the mode.
+
+        Args:
+            bias_cov: bias prior covariance submitted to constructor. Only used
+                to set num_hyp in manual mode.
         """
         if self.mode == 'partition': # Calculate the (N + 1)th Bell Number
             M = self.jk_data.num_dat + 1
@@ -84,7 +88,7 @@ class jk_hyp():
         elif self.mode == 'diagonal':
             num_hyp = 2**(self.jk_data.num_dat)
         else:
-            num_hyp = self.jk_data.num_dat # Will be manual, so this object will have len
+            num_hyp = len(bias_cov)
         return(num_hyp)
 
     def get_bias_mean_cov(self, bias_mean, bias_cov):

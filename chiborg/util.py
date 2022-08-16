@@ -33,23 +33,25 @@ def gen_data_mix(jkc, num_draw):
     jkd_mix = jk_data(simulate=True, sim_mean=sim_mean, sim_bias=mix_bias,
                       noise_cov=jkc.jk_hyp.jk_data.noise_cov,
                       num_dat=jkc.jk_hyp.jk_data.num_dat, num_draw=num_draw)
-    jkh_mix = jk_hyp(jkd, jkc.jk_hyp.bias_prior.mean,
-                     jkc.jk_hyp.bias_prior.cov, jkc.jk_hyp.tm_prior,
-                     jkc.jk_hyp.hyp_prior, mode="manual")
-    jkc_mix = jk_calc(jkh)
+
+    jkh_mix = jk_hyp(jkd_mix, jkc.jk_hyp.bias_prior.mean,
+                     jkc.jk_hyp.bias_prior.cov, tmp=jkc.jk_hyp.tm_prior,
+                     hyp_prior=jkc.jk_hyp.hyp_prior, mode="manual")
+    jkc_mix = jk_calc(jkh_mix)
 
     return(jkd_mix, jkh_mix, jkc_mix)
 
-def get_mut_info(jkc):
+def get_mut_info(jkc, num_draw):
     """
     Gets the mutual information b/w hypotheses and data set that corresponds to
     those hypotheses. Used to evaluate the distinguishability of the hypotheses.
 
     Args:
         jkc: A jk_calc object from which to generate the mixture.
+        num_draw: Number of draws to use for the estimate.
     """
 
-    jkd_mix, jkh_mix, jkc_mix = gen_data_mix(jkc)
+    jkd_mix, jkh_mix, jkc_mix = gen_data_mix(jkc, num_draw)
     logs = -np.where(jkc.evid > 0, np.log2(jkc.evid), 0)
     S_d = np.mean(logs)
     I = S_d - jkc_mix.sum_entropy
