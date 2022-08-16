@@ -131,12 +131,38 @@ class jk_calc():
 
     def gen_data_mix(self, num_draw):
         """
-        Generate a jk_data object whose data draws are a mixture from the
-        marginal likelihoods of the hypotheses described by this onject's
-        jk_hyp object. Somewhat memory intensive in exchange for a bit of speed.
-        Must be in analytic mode.
+        Generate jk_data, jk_hyp, and jk_calc objects whose data draws are a
+        mixture from the marginal likelihoods of the hypotheses described by
+        this object's k_hyp object. Somewhat memory intensive in exchange for a
+        bit of speed. Must be in analytic mode.
 
         Args:
             num_draw (int): How many total draws are desired for the mixture.
         """
         if not self.analytic:
+            raise ValueError("Must be in analytic mode to generate data mixture.")
+
+        # Make the mixed up means
+        sim_mean = np.random.normal(loc=self.jk_hyp.tm_prior.params["loc"],
+                                    scale=self.jk_hyp.tm_prior.params["scale"],
+                                    size=(num_draw, self.jk_hyp.jk_data.num_dat))
+        # Make the mixed up biases
+        all_bias_draws = [ np.random.multivariate_normal(mean=self.jk_hyp.bias_prior.mean[hyp_ind],
+                                                         cov=self.jk_hyp.bias_prior.cov[hyp_ind],
+                                                         size=num_draw).T # Have to transpose to get broadcasting right later
+                           for hyp_ind in range(self.jk_hyp.num_hyp) ]
+        # Do a bunch of multinomial trials to see which component of the mixture should be taken
+        trial = np.random.multinomial(1,
+                                      self.jk_hyp.hyp_prior,
+                                      size=num_draw).argmax(axis=1)
+        mix_bias = np.choose(trial, all_bias_draws).T # Have to transpose to get shape right in jk_data
+
+        jkd = jk_data(simulate=True, sim_mean=sim_mean, sim_bias=mix_bias,
+                      noise_cov=self.jk_hyp.jk_data.noise_cov,
+                      num_dat=self.jk_hyp.jk_data.num_dat, num_draw=num_draw)
+        jkh = jk_hyp(jkd, self.jk_hyp.bias_prior.mean,
+                     self.jk_hyp.bias_prior.cov, self.jk_hyp.tm_prior,
+                     self.jk_hyp.hyp_prior, mode="manual")
+        jkc = self.jkc(jkh)
+
+        return(jkd, jkh, jkc)
