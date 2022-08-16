@@ -39,3 +39,19 @@ def gen_data_mix(jkc, num_draw):
     jkc_mix = jk_calc(jkh)
 
     return(jkd_mix, jkh_mix, jkc_mix)
+
+def get_mut_info(jkc):
+    """
+    Gets the mutual information b/w hypotheses and data set that corresponds to
+    those hypotheses. Used to evaluate the distinguishability of the hypotheses.
+
+    Args:
+        jkc: A jk_calc object from which to generate the mixture.
+    """
+
+    jkd_mix, jkh_mix, jkc_mix = gen_data_mix(jkc)
+    logs = -np.where(jkc.evid > 0, np.log2(jkc.evid), 0)
+    S_d = np.mean(logs)
+    I = S_d - jkc_mix.sum_entropy
+
+    return(I)
