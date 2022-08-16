@@ -87,8 +87,8 @@ class jk_calc():
 
         cov_inv_adjust = cov_sum_inv @ middle_C @ cov_sum_inv
         marg_cov = np.linalg.inv(cov_sum_inv - cov_inv_adjust)
-        like = multivariate_normal(mean=mu_prime, cov=C_prime).pdf(self.jk_hyp.jk_data.data_draws)
-        entropy = multivariate_normal(mean=mu_prime, cov=C_prime).entropy() / np.log(2)
+        like = multivariate_normal(mean=marg_mean, cov=marg_cov).pdf(self.jk_hyp.jk_data.data_draws)
+        entropy = multivariate_normal(mean=marg_mean, cov=marg_cov).entropy() / np.log(2)
 
         return(like, marg_mean, marg_cov, entropy)
 
