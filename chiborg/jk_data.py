@@ -4,7 +4,7 @@ from scipy.linalg import cholesky
 class jk_data():
 
     def __init__(self, simulate=False, sim_mean=np.zeros(2), noise_cov=np.eye(2),
-                 sim_bias=np.zeros(2), num_dat=2, num_draw=int(1e6),
+                 sim_bias=np.zeros(2), num_dat=2, num_draw=1,
                  meas_dat=None):
         """
         Container for holding data and covariance (i.e. what is conditioned on
@@ -44,13 +44,14 @@ class jk_data():
 
         self.num_dat = num_dat
         self.num_draw = num_draw
-        self.dat_shape = (num_draw, num_dat)
+
 
         self.sim_mean = sim_mean
         self.noise_cov= noise_cov
         self.sim_bias = sim_bias
 
         if simulate:
+            self.dat_shape = (num_draw, num_dat)
             self.simulated = True
             self.data_draws = self.sim_draws()
         else:
@@ -60,8 +61,13 @@ class jk_data():
                               "Changing this parameter now.")
                 self.num_draw = 1
             meas_dat_arr = np.array(meas_dat)
+            if self.num_dat != len(meas_dat_arr):
+                warnings.warn("num_dat must be equal to length of supplied data."
+                              " Resetting this parameter.")
+                self.num_dat = len(meas_dat_arr)
             self.data_draws = meas_dat_arr[np.newaxis, :]
-            shape_match = self.bp_draws.shape == self.dat_shape
+            self.dat_shape = (num_draw, num_dat)
+            shape_match = self.data_draws.shape == self.dat_shape
             if not shape_match:
                 raise ValueError("User must supply 1-dimensional input for "
                                  "meas_dat of length num_dat.")
