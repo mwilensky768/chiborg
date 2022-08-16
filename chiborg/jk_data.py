@@ -3,7 +3,7 @@ from scipy.linalg import cholesky
 
 class jk_data():
 
-    def __init__(self, simulate=True, sim_mean=np.zeros(2), noise_cov=np.eye(2),
+    def __init__(self, simulate=False, sim_mean=np.zeros(2), noise_cov=np.eye(2),
                  sim_bias=np.zeros(2), num_dat=2, num_draw=int(1e6),
                  meas_dat=None):
         """
@@ -56,7 +56,9 @@ class jk_data():
         else:
             self.simulated = False
             if self.num_draw > 1:
-                raise ValueError("num_draw must be set to 1 for measured bandpowers.")
+                warnings.warn("num_draw must be set to 1 for measured data."
+                              "Changing this parameter now.")
+                self.num_draw = 1
             meas_dat_arr = np.array(meas_dat)
             self.data_draws = meas_dat_arr[np.newaxis, :]
             shape_match = self.bp_draws.shape == self.dat_shape
