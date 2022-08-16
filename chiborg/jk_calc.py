@@ -36,7 +36,7 @@ class jk_calc():
             raise ValueError("Must use normal prior if asking for analytic "
                              "marginalization.")
 
-        self.like, self.entropy = self.get_like()
+        self.like, self.marg_mean, self.marg_cov, self.entropy = self.get_like()
         self.sum_entropy = self.jk_hyp.hyp_prior @ self.entropy
         self.evid = self.get_evidence()
         self.post = self.get_post()
@@ -48,13 +48,20 @@ class jk_calc():
 
         like = np.zeros([self.jk_hyp.num_hyp, self.jk_hyp.jk_data.num_draw])
         entropy = np.zeros(self.jk_hyp.num_hyp)
+        marg_mean = np.zeros([self.jk_hyp.num_hyp,
+                              self.jk_hyp.jk_data.num_dat])
+        marg_cov = np.zeros([self.jk_hyp.num_hyp,
+                             self.jk_hyp.jk_data.num_dat,
+                             self.jk_hyp.jk_data.num_dat])
+
         for hyp_ind in range(self.jk_hyp.num_hyp):
             if self.analytic:
-                like[hyp_ind], entropy[hyp_ind] = self._get_like_analytic(hyp_ind)
+                like[hyp_ind], entropy[hyp_ind], marg_mean[hyp_ind], marg_cov[hyp_ind] = \
+                    self._get_like_analytic(hyp_ind)
             else:
                 like[hyp_ind] = self._get_like_num(hyp_ind)
 
-        return(like, entropy)
+        return(like, marg_mean, marg_cov, entropy)
 
     def _get_mod_var_cov_sum_inv(self, hyp_ind):
         cov_sum = self.jk_hyp.jk_data.noise_cov + self.jk_hyp.bias_prior.cov[hyp_ind]
@@ -75,15 +82,15 @@ class jk_calc():
 
         mod_var, cov_sum_inv, _ = self._get_mod_var_cov_sum_inv(hyp_ind)
         mu_tm = np.full(self.jk_hyp.jk_data.num_dat, self.jk_hyp.tm_prior.params["loc"])
-        mu_prime = self.jk_hyp.bias_prior.mean[hyp_ind] + mu_tm
+        marg_mean = self.jk_hyp.bias_prior.mean[hyp_ind] + mu_tm
         middle_C = self._get_middle_cov(mod_var)
 
         cov_inv_adjust = cov_sum_inv @ middle_C @ cov_sum_inv
-        C_prime = np.linalg.inv(cov_sum_inv - cov_inv_adjust)
+        marg_cov = np.linalg.inv(cov_sum_inv - cov_inv_adjust)
         like = multivariate_normal(mean=mu_prime, cov=C_prime).pdf(self.jk_hyp.jk_data.data_draws)
         entropy = multivariate_normal(mean=mu_prime, cov=C_prime).entropy() / np.log(2)
 
-        return(like, entropy)
+        return(like, marg_mean, marg_cov, entropy)
 
     def _get_integr(self, hyp_ind):
 
@@ -121,3 +128,15 @@ class jk_calc():
         # Transpose to make shapes conform to numpy broadcasting
         post = (self.like.T * self.jk_hyp.hyp_prior).T / self.evid
         return(post)
+
+    def gen_data_mix(self, num_draw):
+        """
+        Generate a jk_data object whose data draws are a mixture from the
+        marginal likelihoods of the hypotheses described by this onject's
+        jk_hyp object. Somewhat memory intensive in exchange for a bit of speed.
+        Must be in analytic mode.
+
+        Args:
+            num_draw (int): How many total draws are desired for the mixture.
+        """
+        if not self.analytic:
