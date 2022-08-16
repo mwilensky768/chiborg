@@ -31,9 +31,9 @@ class jk_calc():
                           " unnecessarily wide prior.")
 
         self.analytic = analytic
-        gauss = (self.jk_hyp.tm_prior.func.__func__ == norm.pdf.__func__)
+        gauss = self.jk_hyp.tm_prior.name == "Gaussian"
         if self.analytic and (not gauss):
-            raise ValueError("Must use normal prior if asking for analytic "
+            raise ValueError("Must use Gaussian prior if asking for analytic "
                              "marginalization.")
 
         self.like, self.marg_mean, self.marg_cov, self.entropy = self.get_like()
@@ -56,7 +56,7 @@ class jk_calc():
 
         for hyp_ind in range(self.jk_hyp.num_hyp):
             if self.analytic:
-                like[hyp_ind], entropy[hyp_ind], marg_mean[hyp_ind], marg_cov[hyp_ind] = \
+                like[hyp_ind], marg_mean[hyp_ind], marg_cov[hyp_ind], entropy[hyp_ind] = \
                     self._get_like_analytic(hyp_ind)
             else:
                 like[hyp_ind] = self._get_like_num(hyp_ind)

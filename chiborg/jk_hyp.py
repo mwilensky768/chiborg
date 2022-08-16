@@ -7,14 +7,14 @@ from more_itertools.recipes import powerset
 from scipy.stats import norm
 import numpy as np
 
-tm_prior = namedtuple("tm_prior", ["func", "bounds", "params"])
+tm_prior = namedtuple("tm_prior", ["func", "bounds", "params", "name"])
 multi_gauss_prior = namedtuple("multi_gauss_prior", ["mean", "cov"])
 
 class jk_hyp():
 
     def __init__(self, jk_data, bias_mean, bias_cov,
                  tmp=tm_prior(norm.pdf, [-np.inf, np.inf],
-                              {"loc": 0, "scale": 0}),
+                              {"loc": 0, "scale": 0}, "gaussian"),
                  hyp_prior=None, mode="diagonal"):
         """
         Args:
@@ -34,6 +34,10 @@ class jk_hyp():
             tmp: tm_prior namedtuple containing a function to be evaluated for
                  numerical marginalization over the true mean prior as well as
                  the integration bounds and any parameters that the prior has.
+                 It also has a name attribute that describes the type of prior.
+                 For proper interaction with the jk_calc class in analytic mode,
+                 a Gaussian prior must be used with the name 'Gaussian', as in
+                 the default argument case.
             mode: Which set of hypotheses to use. Valid options are 'diagonal',
                 'partition', and 'manual'. The first two are detailed in the
                 paper, and are essentially summaries of the set of bias
