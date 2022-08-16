@@ -9,23 +9,21 @@ import warnings
 
 class jk_calc():
 
-    def __init__(self, jk_data, jk_hyp, analytic=True):
+    def __init__(self, jk_hyp, analytic=True):
         """
         Class for containing jackknife parameters and doing calculations of
         various test statistics.
 
         Parameters:
-            jk_data: A jk_data object that holds the data and covariance
-                with which to work.
             jk_hyp: jk_hyp object that holds useful parameters about test
-                hypotheses
+                hypotheses (and implicitly a jk_data object)
             analytic: Whether to use analytic result for likelihood computation
         """
-        self.jk_data = copy.deepcopy(jk_data)
+
         self.jk_hyp = copy.deepcopy(jk_hyp)
 
         jk_hyp_cov_min = np.amin(np.diag(self.jk_hyp.bias_prior.cov[-1]))
-        jk_data_cov_min = np.amin(np.diag(self.jk_data.noise_cov))
+        jk_data_cov_min = np.amin(np.diag(self.jk_hyp.jk_data.noise_cov))
         if jk_hyp_cov_min > 1e8 * jk_data_cov_min:
             warnings.warn("Bias prior is sufficiently large compared to error"
                           " bar to produce floating point roundoff errors. The"
@@ -48,7 +46,7 @@ class jk_calc():
         Get the likelihoods for each of the hypotheses.
         """
 
-        like = np.zeros([self.jk_hyp.num_hyp, self.jk_data.num_draw])
+        like = np.zeros([self.jk_hyp.num_hyp, self.jk_hyp.jk_data.num_draw])
         entropy = np.zeros(self.jk_hyp.num_hyp)
         for hyp_ind in range(self.jk_hyp.num_hyp):
             if self.analytic:
@@ -59,7 +57,7 @@ class jk_calc():
         return(like, entropy)
 
     def _get_mod_var_cov_sum_inv(self, hyp_ind):
-        cov_sum = self.jk_data.noise_cov + self.jk_hyp.bias_prior.cov[hyp_ind]
+        cov_sum = self.jk_hyp.jk_data.noise_cov + self.jk_hyp.bias_prior.cov[hyp_ind]
         cov_sum_inv = np.linalg.inv(cov_sum)
         mod_var = 1 / np.sum(cov_sum_inv)
 
@@ -70,19 +68,19 @@ class jk_calc():
             prec_sum = np.inf
         else:
             prec_sum = 1 / mod_var + 1 / self.jk_hyp.tm_prior.params["scale"]**2
-        middle_C = np.ones([self.jk_data.num_dat, self.jk_data.num_dat]) / prec_sum
+        middle_C = np.ones([self.jk_hyp.jk_data.num_dat, self.jk_hyp.jk_data.num_dat]) / prec_sum
         return(middle_C)
 
     def _get_like_analytic(self, hyp_ind):
 
         mod_var, cov_sum_inv, _ = self._get_mod_var_cov_sum_inv(hyp_ind)
-        mu_tm = np.full(self.jk_data.num_dat, self.jk_hyp.tm_prior.params["loc"])
+        mu_tm = np.full(self.jk_hyp.jk_data.num_dat, self.jk_hyp.tm_prior.params["loc"])
         mu_prime = self.jk_hyp.bias_prior.mean[hyp_ind] + mu_tm
         middle_C = self._get_middle_cov(mod_var)
 
         cov_inv_adjust = cov_sum_inv @ middle_C @ cov_sum_inv
         C_prime = np.linalg.inv(cov_sum_inv - cov_inv_adjust)
-        like = multivariate_normal(mean=mu_prime, cov=C_prime).pdf(self.jk_data.data_draws)
+        like = multivariate_normal(mean=mu_prime, cov=C_prime).pdf(self.jk_hyp.jk_data.data_draws)
         entropy = multivariate_normal(mean=mu_prime, cov=C_prime).entropy() / np.log(2)
 
         return(like, entropy)
@@ -92,9 +90,9 @@ class jk_calc():
         _, _, cov_sum = self._get_mod_var_cov_sum_inv(hyp_ind)
 
         def integrand(x):
-            gauss_1_arg = self.jk_data.data_draws - self.jk_hyp.bias_prior.mean[hyp_ind]
+            gauss_1_arg = self.jk_hyp.jk_data.data_draws - self.jk_hyp.bias_prior.mean[hyp_ind]
             gauss_1 = multivariate_normal.pdf(gauss_1_arg,
-                                              mean=np.full(self.jk_data.num_dat, x),
+                                              mean=np.full(self.jk_hyp.jk_data.num_dat, x),
                                               cov=cov_sum)
             gauss_2 = self.jk_hyp.tm_prior.func(x, **self.jk_hyp.tm_prior.params)
 
