@@ -52,7 +52,7 @@ def get_mut_info(jkc, num_draw):
     """
 
     jkd_mix, jkh_mix, jkc_mix = gen_data_mix(jkc, num_draw)
-    logs = -np.where(jkc.evid > 0, np.log2(jkc.evid), 0)
+    logs = -np.where(jkc_mix.evid > 0, np.log2(jkc_mix.evid), 0)
     S_d = np.mean(logs)
     I = S_d - jkc_mix.sum_entropy
 

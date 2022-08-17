@@ -31,7 +31,7 @@ class jk_calc():
                           " unnecessarily wide prior.")
 
         self.analytic = analytic
-        gauss = self.jk_hyp.tm_prior.name == "Gaussian"
+        gauss = self.jk_hyp.tm_prior.name.lower() == "gaussian"
         if self.analytic and (not gauss):
             raise ValueError("Must use Gaussian prior if asking for analytic "
                              "marginalization.")
