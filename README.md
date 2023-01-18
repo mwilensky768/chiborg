@@ -1,7 +1,6 @@
 # chiborg
 Bayesian jackknife test for investigating biased measurements, coded in Python.
-A scientific journal article explaining this test, as applied to an observational
-cosmology problem, will be released soon.
+A scientific journal article explaining this test is available at [https://arxiv.org/abs/2210.17351](https://arxiv.org/abs/2210.17351).
 
 # Documentation
 There is an example notebook in the notebooks directory that serves as a
