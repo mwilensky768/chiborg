@@ -6,6 +6,7 @@ from more_itertools import set_partitions
 from more_itertools.recipes import powerset
 from scipy.stats import norm
 import numpy as np
+import warnings
 
 tm_prior = namedtuple("tm_prior", ["func", "bounds", "params", "name"])
 multi_gauss_prior = namedtuple("multi_gauss_prior", ["mean", "cov"])
@@ -53,6 +54,12 @@ class jk_hyp():
         self.num_hyp = self.get_num_hyp(bias_cov)
 
         if self.mode != "manual":
+            if not isinstance(bias_mean, np.ndarray):
+                warnings.warn("Casting bias_mean to array.")
+                bias_mean = np.array(bias_mean)
+            if not isinstance(bias_cov, np.ndarray):
+                warnings.warn("Casting bias_cov to array.")
+                bias_cov = np.array(bias_cov)
             bias_mean, bias_cov = self.get_bias_mean_cov(bias_mean,
                                                           bias_cov)
         self.bias_prior = multi_gauss_prior(bias_mean, bias_cov)
