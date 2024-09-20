@@ -1,8 +1,6 @@
 import numpy as np
-from scipy.stats import norm, multivariate_normal
-from scipy.sparse import block_diag
+from scipy.stats import multivariate_normal
 from scipy.integrate import quad_vec
-from scipy.linalg import LinAlgError
 import copy
 import warnings
 
