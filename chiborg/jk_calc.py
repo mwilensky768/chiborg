@@ -57,7 +57,7 @@ class jk_calc():
         for hyp_ind in range(self.jk_hyp.num_hyp):
             if self.analytic:
                 like[hyp_ind], marg_mean[hyp_ind], marg_cov[hyp_ind], entropy[hyp_ind] = \
-                    self._get_like_analytic(hyp_ind)
+                    self.get_like_analytic(hyp_ind)
             else:
                 like[hyp_ind] = self._get_like_num(hyp_ind)
 
@@ -78,15 +78,39 @@ class jk_calc():
         middle_C = np.ones([self.jk_hyp.jk_data.num_dat, self.jk_hyp.jk_data.num_dat]) / prec_sum
         return(middle_C)
 
-    def _get_like_analytic(self, hyp_ind):
+    def get_like_analytic(self, hyp_ind, calc_entropy=True):
+        """
+        Get the analytic likelihood for a hypothesis assuming all quantities are
+        Gaussian. This is now implemented differently than expressed in the
+        original paper by taking account of the fact that each hypothesis is a 
+        Gaussian linear model. Also calculates the entropy of the marginal
+        distribution of the data.
 
-        mod_var, cov_sum_inv, _ = self._get_mod_var_cov_sum_inv(hyp_ind)
-        mu_tm = np.full(self.jk_hyp.jk_data.num_dat, self.jk_hyp.tm_prior.params["loc"])
-        marg_mean = self.jk_hyp.bias_prior.mean[hyp_ind] + mu_tm
-        middle_C = self._get_middle_cov(mod_var)
+        Parameters:
+            hyp_ind (int):
+                The index for the hypothesis in question.
+        
+        Returns:
+            like (float): 
+                The marginal likelihood of the hypothesis in question.
+            marg_mean (array):
+                The marginal mean of the data according to the hypothesis.
+            marg_cov (array):
+                The marginal covariance of the data according to the hypothesis.
+            entropy (float):
+                The entropy, in bits, of the marginal distribution of the data.
+        """
 
-        cov_inv_adjust = cov_sum_inv @ middle_C @ cov_sum_inv
-        marg_cov = np.linalg.inv(cov_sum_inv - cov_inv_adjust)
+        model_Dmatr = np.hstack((np.ones(self.jk_hyp.jk_data.num_dat), np.eye(self.jk_hyp.jk_data.num_dat)))
+        model_mean = np.vstack((np.atleast_2d(self.jk_hyp.tm_prior.params["loc"]), self.jk_hyp.bias_prior.mean[hyp_ind]))
+
+        cov_offdiag = np.zeros([1, self.jk_hyp.jk_data.num_dat])
+        model_cov = np.block([[np.atleast_2d(self.jk_hyp.tm_prior.params["scale"]**2), cov_offdiag], 
+                              [cov_offdiag.T, self.jk_hyp.bias_prior.cov[hyp_ind]]])
+        
+        marg_mean = model_Dmatr @ model_mean
+        marg_cov = self.jk_hyp.jk_data.noise_cov + model_Dmatr @ model_cov @ model_Dmatr.T
+
         like = multivariate_normal(mean=marg_mean, cov=marg_cov).pdf(self.jk_hyp.jk_data.data_draws)
         entropy = multivariate_normal(mean=marg_mean, cov=marg_cov).entropy() / np.log(2)
 
