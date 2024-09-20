@@ -57,7 +57,7 @@ class jk_calc():
                 like[hyp_ind], marg_mean[hyp_ind], marg_cov[hyp_ind], entropy[hyp_ind] = \
                     self.get_like_analytic(hyp_ind)
             else:
-                like[hyp_ind] = self._get_like_num(hyp_ind)
+                like[hyp_ind] = self.get_like_num(hyp_ind)
 
         return like, marg_mean, marg_cov, entropy
 
@@ -128,7 +128,18 @@ class jk_calc():
 
         return integrand
 
-    def _get_like_num(self, hyp_ind):
+    def get_like_num(self, hyp_ind):
+        """
+        Get the marginal likelihood of the hypothesis using quadrature integration.
+
+        Parameters:
+            hyp_ind (int):
+                The index of the hypothesis in question.
+        
+        Returns:
+            integral (float):
+                The marginal likelihood of the data under this hypothesis.
+        """
 
         integrand_func = self.get_integr(hyp_ind)
 
@@ -142,10 +153,25 @@ class jk_calc():
         return integral
 
     def get_evidence(self):
+        """
+        Gets the evidence for the entire mixture model (the denominator in the
+        model comparison framework).
+
+        Returns:
+            evid (float):
+                The normalizing constant in the model comparison problem.
+        """
         evid = self.jk_hyp.hyp_prior @ self.like
         return evid
 
     def get_post(self):
+        """
+        Gets the posterior over the hypotheses.
+
+        Returns:
+            post (array):
+                The posterior probability for each hypothesis.
+        """
         # Transpose to make shapes conform to numpy broadcasting
         post = (self.like.T * self.jk_hyp.hyp_prior).T / self.evid
         return post
