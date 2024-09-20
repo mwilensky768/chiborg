@@ -61,22 +61,7 @@ class jk_calc():
 
         return like, marg_mean, marg_cov, entropy
 
-    def _get_mod_var_cov_sum_inv(self, hyp_ind):
-        cov_sum = self.jk_hyp.jk_data.noise_cov + self.jk_hyp.bias_prior.cov[hyp_ind]
-        cov_sum_inv = np.linalg.inv(cov_sum)
-        mod_var = 1 / np.sum(cov_sum_inv)
-
-        return mod_var, cov_sum_inv, cov_sum
-
-    def _get_middle_cov(self, mod_var):
-        if self.jk_hyp.tm_prior.params["scale"] == 0:
-            prec_sum = np.inf
-        else:
-            prec_sum = 1 / mod_var + 1 / self.jk_hyp.tm_prior.params["scale"]**2
-        middle_C = np.ones([self.jk_hyp.jk_data.num_dat, self.jk_hyp.jk_data.num_dat]) / prec_sum
-        return middle_C 
-
-    def get_like_analytic(self, hyp_ind, calc_entropy=True):
+    def get_like_analytic(self, hyp_ind):
         """
         Get the analytic likelihood for a hypothesis assuming all quantities are
         Gaussian. This is now implemented differently than expressed in the
@@ -114,14 +99,28 @@ class jk_calc():
 
         return like, marg_mean, marg_cov, entropy
 
-    def _get_integr(self, hyp_ind):
+    def get_integr(self, hyp_ind):
+        """
+        Generate a function that evaluates the conditional likelihood for the
+        underlying true mean multiplied by the prior for the true mean 
+        (for a given hypothesis). Used in numerical evaluation of the marginal 
+        likelihood in the case that a non-Gaussian prior is used.
 
-        _, _, cov_sum = self._get_mod_var_cov_sum_inv(hyp_ind)
+        Parameters:
+            hyp_ind (int):
+                The index for the hypothesis in question.
+        
+        Returns:
+            integrand (function):
+                The desired function.
+        """
+
+        cov_sum = self.jk_hyp.jk_data.noise_cov + self.jk_hyp.bias_prior.cov[hyp_ind]
 
         def integrand(x):
-            gauss_1_arg = self.jk_hyp.jk_data.data_draws - self.jk_hyp.bias_prior.mean[hyp_ind]
-            gauss_1 = multivariate_normal.pdf(gauss_1_arg,
-                                              mean=np.full(self.jk_hyp.jk_data.num_dat, x),
+            cond_mean = np.full(self.jk_hyp.jk_data.num_dat, x) + self.jk_hyp.bias_prior.mean[hyp_ind]
+            gauss_1 = multivariate_normal.pdf(self.jk_hyp.jk_data.data_draws,
+                                              mean=cond_mean,
                                               cov=cov_sum)
             gauss_2 = self.jk_hyp.tm_prior.func(x, **self.jk_hyp.tm_prior.params)
 
@@ -131,7 +130,7 @@ class jk_calc():
 
     def _get_like_num(self, hyp_ind):
 
-        integrand_func = self._get_integr(hyp_ind)
+        integrand_func = self.get_integr(hyp_ind)
 
         integral, err, info = quad_vec(integrand_func,
                                        *self.jk_hyp.tm_prior.bounds,
