@@ -127,7 +127,7 @@ class jk_calc():
                                               cov=cov_sum)
             gauss_2 = self.jk_hyp.tm_prior.func(x, **self.jk_hyp.tm_prior.params)
 
-            return(gauss_1 * gauss_2)
+            return gauss_1 * gauss_2
 
         return integrand
 
