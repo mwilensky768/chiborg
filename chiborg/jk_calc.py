@@ -142,7 +142,7 @@ class jk_calc():
             warnings.warn("Numerical integration flagged as unsuccessful. "
                           "Results may be untrustworthy.")
 
-        return(integral)
+        return integral
 
     def get_evidence(self):
         evid = self.jk_hyp.hyp_prior @ self.like
