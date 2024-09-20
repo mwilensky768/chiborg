@@ -61,14 +61,14 @@ class jk_calc():
             else:
                 like[hyp_ind] = self._get_like_num(hyp_ind)
 
-        return(like, marg_mean, marg_cov, entropy)
+        return like, marg_mean, marg_cov, entropy
 
     def _get_mod_var_cov_sum_inv(self, hyp_ind):
         cov_sum = self.jk_hyp.jk_data.noise_cov + self.jk_hyp.bias_prior.cov[hyp_ind]
         cov_sum_inv = np.linalg.inv(cov_sum)
         mod_var = 1 / np.sum(cov_sum_inv)
 
-        return(mod_var, cov_sum_inv, cov_sum)
+        return mod_var, cov_sum_inv, cov_sum
 
     def _get_middle_cov(self, mod_var):
         if self.jk_hyp.tm_prior.params["scale"] == 0:
@@ -76,7 +76,7 @@ class jk_calc():
         else:
             prec_sum = 1 / mod_var + 1 / self.jk_hyp.tm_prior.params["scale"]**2
         middle_C = np.ones([self.jk_hyp.jk_data.num_dat, self.jk_hyp.jk_data.num_dat]) / prec_sum
-        return(middle_C)
+        return middle_C 
 
     def get_like_analytic(self, hyp_ind, calc_entropy=True):
         """
@@ -114,7 +114,7 @@ class jk_calc():
         like = multivariate_normal(mean=marg_mean, cov=marg_cov).pdf(self.jk_hyp.jk_data.data_draws)
         entropy = multivariate_normal(mean=marg_mean, cov=marg_cov).entropy() / np.log(2)
 
-        return(like, marg_mean, marg_cov, entropy)
+        return like, marg_mean, marg_cov, entropy
 
     def _get_integr(self, hyp_ind):
 
@@ -129,7 +129,7 @@ class jk_calc():
 
             return(gauss_1 * gauss_2)
 
-        return(integrand)
+        return integrand
 
     def _get_like_num(self, hyp_ind):
 
@@ -146,9 +146,9 @@ class jk_calc():
 
     def get_evidence(self):
         evid = self.jk_hyp.hyp_prior @ self.like
-        return(evid)
+        return evid
 
     def get_post(self):
         # Transpose to make shapes conform to numpy broadcasting
         post = (self.like.T * self.jk_hyp.hyp_prior).T / self.evid
-        return(post)
+        return post
