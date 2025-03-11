@@ -29,6 +29,7 @@ class jk_calc():
                           " unnecessarily wide prior.")
 
         self.analytic = analytic
+
         gauss = self.jk_hyp.tm_prior.name.lower() == "gaussian"
         if self.analytic and (not gauss):
             raise ValueError("Must use Gaussian prior if asking for analytic "
@@ -84,18 +85,22 @@ class jk_calc():
                 The entropy, in bits, of the marginal distribution of the data.
         """
 
-        model_Dmatr = np.hstack((np.ones(self.jk_hyp.jk_data.num_dat), np.eye(self.jk_hyp.jk_data.num_dat)))
-        model_mean = np.vstack((np.atleast_2d(self.jk_hyp.tm_prior.params["loc"]), self.jk_hyp.bias_prior.mean[hyp_ind]))
+        model_Dmatr = np.hstack((np.ones(self.jk_hyp.jk_data.num_dat)[:, None],
+                                 np.eye(self.jk_hyp.jk_data.num_dat)))
+        model_mean = np.vstack((np.atleast_2d(self.jk_hyp.tm_prior.params["loc"]),
+                                self.jk_hyp.bias_prior.mean[hyp_ind][:, None]))
 
         cov_offdiag = np.zeros([1, self.jk_hyp.jk_data.num_dat])
         model_cov = np.block([[np.atleast_2d(self.jk_hyp.tm_prior.params["scale"]**2), cov_offdiag], 
                               [cov_offdiag.T, self.jk_hyp.bias_prior.cov[hyp_ind]]])
         
-        marg_mean = model_Dmatr @ model_mean
+        # Index marg_mean on the axis of length 1 so broadcasting isn't a problem
+        marg_mean = (model_Dmatr @ model_mean)[:, 0]
         marg_cov = self.jk_hyp.jk_data.noise_cov + model_Dmatr @ model_cov @ model_Dmatr.T
-
-        like = multivariate_normal(mean=marg_mean, cov=marg_cov).pdf(self.jk_hyp.jk_data.data_draws)
-        entropy = multivariate_normal(mean=marg_mean, cov=marg_cov).entropy() / np.log(2)
+        
+        mn_rv = multivariate_normal(mean=marg_mean, cov=marg_cov)
+        like = mn_rv.pdf(self.jk_hyp.jk_data.data_draws)
+        entropy = mn_rv.entropy() / np.log(2)
 
         return like, marg_mean, marg_cov, entropy
 
@@ -145,7 +150,8 @@ class jk_calc():
 
         integral, err, info = quad_vec(integrand_func,
                                        *self.jk_hyp.tm_prior.bounds,
-                                       full_output=True)
+                                       full_output=True,
+                                       workers=self.workers)
         if not info.success:
             warnings.warn("Numerical integration flagged as unsuccessful. "
                           "Results may be untrustworthy.")
