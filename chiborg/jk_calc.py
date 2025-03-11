@@ -1,8 +1,6 @@
 import numpy as np
-from scipy.stats import norm, multivariate_normal
-from scipy.sparse import block_diag
+from scipy.stats import multivariate_normal
 from scipy.integrate import quad_vec
-from scipy.linalg import LinAlgError
 import copy
 import warnings
 
@@ -31,6 +29,7 @@ class jk_calc():
                           " unnecessarily wide prior.")
 
         self.analytic = analytic
+
         gauss = self.jk_hyp.tm_prior.name.lower() == "gaussian"
         if self.analytic and (not gauss):
             raise ValueError("Must use Gaussian prior if asking for analytic "
@@ -57,74 +56,128 @@ class jk_calc():
         for hyp_ind in range(self.jk_hyp.num_hyp):
             if self.analytic:
                 like[hyp_ind], marg_mean[hyp_ind], marg_cov[hyp_ind], entropy[hyp_ind] = \
-                    self._get_like_analytic(hyp_ind)
+                    self.get_like_analytic(hyp_ind)
             else:
-                like[hyp_ind] = self._get_like_num(hyp_ind)
+                like[hyp_ind] = self.get_like_num(hyp_ind)
 
-        return(like, marg_mean, marg_cov, entropy)
+        return like, marg_mean, marg_cov, entropy
 
-    def _get_mod_var_cov_sum_inv(self, hyp_ind):
+    def get_like_analytic(self, hyp_ind):
+        """
+        Get the analytic likelihood for a hypothesis assuming all quantities are
+        Gaussian. This is now implemented differently than expressed in the
+        original paper by taking account of the fact that each hypothesis is a 
+        Gaussian linear model. Also calculates the entropy of the marginal
+        distribution of the data.
+
+        Parameters:
+            hyp_ind (int):
+                The index for the hypothesis in question.
+        
+        Returns:
+            like (float): 
+                The marginal likelihood of the hypothesis in question.
+            marg_mean (array):
+                The marginal mean of the data according to the hypothesis.
+            marg_cov (array):
+                The marginal covariance of the data according to the hypothesis.
+            entropy (float):
+                The entropy, in bits, of the marginal distribution of the data.
+        """
+
+        model_Dmatr = np.hstack((np.ones(self.jk_hyp.jk_data.num_dat)[:, None],
+                                 np.eye(self.jk_hyp.jk_data.num_dat)))
+        model_mean = np.vstack((np.atleast_2d(self.jk_hyp.tm_prior.params["loc"]),
+                                self.jk_hyp.bias_prior.mean[hyp_ind][:, None]))
+
+        cov_offdiag = np.zeros([1, self.jk_hyp.jk_data.num_dat])
+        model_cov = np.block([[np.atleast_2d(self.jk_hyp.tm_prior.params["scale"]**2), cov_offdiag], 
+                              [cov_offdiag.T, self.jk_hyp.bias_prior.cov[hyp_ind]]])
+        
+        # Index marg_mean on the axis of length 1 so broadcasting isn't a problem
+        marg_mean = (model_Dmatr @ model_mean)[:, 0]
+        marg_cov = self.jk_hyp.jk_data.noise_cov + model_Dmatr @ model_cov @ model_Dmatr.T
+        
+        mn_rv = multivariate_normal(mean=marg_mean, cov=marg_cov)
+        like = mn_rv.pdf(self.jk_hyp.jk_data.data_draws)
+        entropy = mn_rv.entropy() / np.log(2)
+
+        return like, marg_mean, marg_cov, entropy
+
+    def get_integr(self, hyp_ind):
+        """
+        Generate a function that evaluates the conditional likelihood for the
+        underlying true mean multiplied by the prior for the true mean 
+        (for a given hypothesis). Used in numerical evaluation of the marginal 
+        likelihood in the case that a non-Gaussian prior is used.
+
+        Parameters:
+            hyp_ind (int):
+                The index for the hypothesis in question.
+        
+        Returns:
+            integrand (function):
+                The desired function.
+        """
+
         cov_sum = self.jk_hyp.jk_data.noise_cov + self.jk_hyp.bias_prior.cov[hyp_ind]
-        cov_sum_inv = np.linalg.inv(cov_sum)
-        mod_var = 1 / np.sum(cov_sum_inv)
-
-        return(mod_var, cov_sum_inv, cov_sum)
-
-    def _get_middle_cov(self, mod_var):
-        if self.jk_hyp.tm_prior.params["scale"] == 0:
-            prec_sum = np.inf
-        else:
-            prec_sum = 1 / mod_var + 1 / self.jk_hyp.tm_prior.params["scale"]**2
-        middle_C = np.ones([self.jk_hyp.jk_data.num_dat, self.jk_hyp.jk_data.num_dat]) / prec_sum
-        return(middle_C)
-
-    def _get_like_analytic(self, hyp_ind):
-
-        mod_var, cov_sum_inv, _ = self._get_mod_var_cov_sum_inv(hyp_ind)
-        mu_tm = np.full(self.jk_hyp.jk_data.num_dat, self.jk_hyp.tm_prior.params["loc"])
-        marg_mean = self.jk_hyp.bias_prior.mean[hyp_ind] + mu_tm
-        middle_C = self._get_middle_cov(mod_var)
-
-        cov_inv_adjust = cov_sum_inv @ middle_C @ cov_sum_inv
-        marg_cov = np.linalg.inv(cov_sum_inv - cov_inv_adjust)
-        like = multivariate_normal(mean=marg_mean, cov=marg_cov).pdf(self.jk_hyp.jk_data.data_draws)
-        entropy = multivariate_normal(mean=marg_mean, cov=marg_cov).entropy() / np.log(2)
-
-        return(like, marg_mean, marg_cov, entropy)
-
-    def _get_integr(self, hyp_ind):
-
-        _, _, cov_sum = self._get_mod_var_cov_sum_inv(hyp_ind)
 
         def integrand(x):
-            gauss_1_arg = self.jk_hyp.jk_data.data_draws - self.jk_hyp.bias_prior.mean[hyp_ind]
-            gauss_1 = multivariate_normal.pdf(gauss_1_arg,
-                                              mean=np.full(self.jk_hyp.jk_data.num_dat, x),
+            cond_mean = np.full(self.jk_hyp.jk_data.num_dat, x) + self.jk_hyp.bias_prior.mean[hyp_ind]
+            gauss_1 = multivariate_normal.pdf(self.jk_hyp.jk_data.data_draws,
+                                              mean=cond_mean,
                                               cov=cov_sum)
             gauss_2 = self.jk_hyp.tm_prior.func(x, **self.jk_hyp.tm_prior.params)
 
-            return(gauss_1 * gauss_2)
+            return gauss_1 * gauss_2
 
-        return(integrand)
+        return integrand
 
-    def _get_like_num(self, hyp_ind):
+    def get_like_num(self, hyp_ind):
+        """
+        Get the marginal likelihood of the hypothesis using quadrature integration.
 
-        integrand_func = self._get_integr(hyp_ind)
+        Parameters:
+            hyp_ind (int):
+                The index of the hypothesis in question.
+        
+        Returns:
+            integral (float):
+                The marginal likelihood of the data under this hypothesis.
+        """
+
+        integrand_func = self.get_integr(hyp_ind)
 
         integral, err, info = quad_vec(integrand_func,
                                        *self.jk_hyp.tm_prior.bounds,
-                                       full_output=True)
+                                       full_output=True,
+                                       workers=self.workers)
         if not info.success:
             warnings.warn("Numerical integration flagged as unsuccessful. "
                           "Results may be untrustworthy.")
 
-        return(integral)
+        return integral
 
     def get_evidence(self):
+        """
+        Gets the evidence for the entire mixture model (the denominator in the
+        model comparison framework).
+
+        Returns:
+            evid (float):
+                The normalizing constant in the model comparison problem.
+        """
         evid = self.jk_hyp.hyp_prior @ self.like
-        return(evid)
+        return evid
 
     def get_post(self):
+        """
+        Gets the posterior over the hypotheses.
+
+        Returns:
+            post (array):
+                The posterior probability for each hypothesis.
+        """
         # Transpose to make shapes conform to numpy broadcasting
         post = (self.like.T * self.jk_hyp.hyp_prior).T / self.evid
-        return(post)
+        return post
