@@ -2,7 +2,7 @@ import numpy as np
 from scipy.linalg import cholesky
 import warnings
 
-class JKData:
+class DataContainer:
 
     def __init__(self, dat, noise_cov, dmatr=None):
         """
@@ -42,7 +42,7 @@ class JKData:
         self.dmatr = dmatr
     
 
-class JKSim:
+class SimContainer:
     
     def __init__(self, num_draw, num_dat, mean, noise_cov, bias):
         if not isinstance(num_draw, int):
