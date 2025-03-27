@@ -19,11 +19,6 @@ class DataContainer:
             dmatr:
                 A design matrix for a linear model. Otherwise just assume the OG
                 identity design matrix.
-
-        Attributes:
-            data_draws: An array of draws from a gaussian with parameters
-                described by the class parameters, OR an array of measured
-                bandpowers.
         """
         if not isinstance(dat, np.ndarray):
             warnings.warn("Casting data to numpy array.")
@@ -44,18 +39,34 @@ class DataContainer:
 
 class SimContainer:
     
-    def __init__(self, num_draw, num_dat, mean, noise_cov, bias):
+    def __init__(self, num_draw, dat_len, mean, noise_cov, bias):
+        """
+        Class for performing and containing simulations.
+
+        Parameters:
+            num_draw (int):
+                Number of simulated draws to take.
+            dat_len (int):
+                Vector length of data to draw.
+            mean (array):
+                True mean of the simulated draws, length dat_len
+            noise_cov (array):
+                Noise covariance of the draws, shape (dat_len, dat_len)
+            bias (array):
+                Bias to assign to each of the simulated draws.
+            
+        """
         if not isinstance(num_draw, int):
             warnings.warn("Casting num_draw parameter as an integer")
             num_draw = int(num_draw)
 
-        if not isinstance(num_dat, int):
+        if not isinstance(dat_len, int):
             warnings.warn("Casting num_dat parameter as an integer")
-            num_dat = int(num_dat)
+            dat_len = int(dat_len)
 
         self.num_draw = num_draw
-        self.num_dat = num_dat
-        self.dat_shape = (self.num_draw, self.num_dat)
+        self.dat_len = dat_len
+        self.dat_shape = (self.num_draw, self.dat_len)
         self.simulated = True
         self.noise_cov = noise_cov
         self.mean = mean
@@ -69,7 +80,7 @@ class SimContainer:
         a standard multivariate gaussian sampling technique using Cholesky
         factorization for the covariance matrix.
         """
-        std_gauss = np.random.normal(size=[self.num_draw, self.num_dat])
+        std_gauss = np.random.normal(size=[self.dat_len, self.num_dat])
         cho = cholesky(self.noise_cov, lower=False)
         draws = std_gauss@cho + self.mean + self.bias
 
