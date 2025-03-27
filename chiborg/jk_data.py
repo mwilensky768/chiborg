@@ -31,11 +31,6 @@ class DataContainer:
         self.noise_cov= noise_cov
         cov_shape_correct = self.noise_cov.shape == 2 * self.dat.shape
         assert cov_shape_correct, "Reshape supplied covariance so that it is 4 dimensional, inserting axes of length 1 where appropriate."
-            
-        if dmatr is None:
-            dmatr = np.eye(self.dat_len)
-        self.dmatr = dmatr
-        self.num_params = dmatr.shape[1]
     
 
 class SimContainer:

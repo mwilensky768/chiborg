@@ -149,3 +149,31 @@ class HypContainer:
 
 
         return(bias_mean_final, bias_cov_final)
+    
+
+class ModelContainer:
+
+    def __init__(self, dmatr, prior_mean, prior_cov,
+                 bias_mean, bias_cov):
+        """
+        A class that contains parameters associated with a Gaussian linear model.
+
+        Parameters:
+            dmatr (array):
+                A design matrix of shape (dat_len, num_params).
+            model_mean (array):
+                Mean of the model when the bias is turned on.
+        """
+        
+        self.dmatr = dmatr
+        self.num_params = dmatr.shape[1]
+        self.prior_mean = prior_mean
+        self.prior_cov = prior_cov
+        self.bias_mean = bias_mean
+        self.bias_cov = bias_cov
+
+        self.prior_mean_data = self.dmatr @ self.prior_mean
+        self.bias_mean_data = self.dmatr @ self.bias_mean
+        self.prior_cov_data = self.dmatr @ self.prior_cov @ self.dmatr.T
+        self.bias_cov_data = self.dmatr @ self.bias_cov @ self.dmatr.T
+        
