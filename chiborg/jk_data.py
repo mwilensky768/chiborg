@@ -18,7 +18,7 @@ class DataContainer:
                 The data covariance, shape (num_dat, dat_len, num_dat, dat_len)
             dmatr:
                 A design matrix for a linear model. Otherwise just assume the OG
-                identity design matrix.
+                identity design matrix. Shape (dat_len, num_params).
         """
         if not isinstance(dat, np.ndarray):
             warnings.warn("Casting data to numpy array.")
@@ -35,6 +35,7 @@ class DataContainer:
         if dmatr is None:
             dmatr = np.eye(self.dat_len)
         self.dmatr = dmatr
+        self.num_params = dmatr.shape[1]
     
 
 class SimContainer:
