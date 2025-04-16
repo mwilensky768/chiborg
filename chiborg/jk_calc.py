@@ -150,8 +150,7 @@ class jk_calc():
 
         integral, err, info = quad_vec(integrand_func,
                                        *self.jk_hyp.tm_prior.bounds,
-                                       full_output=True,
-                                       workers=self.workers)
+                                       full_output=True)
         if not info.success:
             warnings.warn("Numerical integration flagged as unsuccessful. "
                           "Results may be untrustworthy.")
