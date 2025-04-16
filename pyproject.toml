@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", "setuptools_scm>=8.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chiborg"
+authors = [
+    {name = "Michael J. Wilensky", email="michael.wilensky@mcgill.ca"}
+]
+maintainers = [
+    {name = "Michael J. Wilensky", email="michael.wilensky@mcgill.ca"}
+]
+description = "Bayesian jackknifing code"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = [
+    "numpy",
+    "scipy",
+    "more-itertools"
+]
+requires-python = ">=3.10"
+keywords = ["Bayesian", "jackknifing", "hypothesis test"]
+classifiers = [
+    "License :: OSI Approved :: BSD License",
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+
+[project.urls]
+Repository = "https://github.com/mwilensky768/chiborg"
+
+[tool.setuptools]
+packages=["chiborg"]
+
+# This has to be here for Mac builds to work.
+[tool.setuptools_scm]
+version_file = "chiborg/version.py"
+
+
+
