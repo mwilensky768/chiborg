@@ -14,9 +14,9 @@ description = "Bayesian jackknifing code"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
-    numpy,
-    scipy,
-    more-itertools
+    "numpy",
+    "scipy",
+    "more-itertools"
 ]
 requires-python = ">=3.10"
 keywords = ["Bayesian", "jackknifing", "hypothesis test"]
@@ -34,8 +34,12 @@ classifiers = [
 [project.urls]
 Repository = "https://github.com/mwilensky768/chiborg"
 
+[tool.setuptools]
+packages=["chiborg"]
+
 # This has to be here for Mac builds to work.
 [tool.setuptools_scm]
 version_file = "chiborg/version.py"
+
 
 
