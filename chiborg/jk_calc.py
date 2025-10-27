@@ -156,6 +156,8 @@ class jk_calc():
         if not info.success:
             warnings.warn("Numerical integration flagged as unsuccessful. "
                           "Results may be untrustworthy.")
+            
+        self.integration_errors.append(err) 
 
         return integral
 
