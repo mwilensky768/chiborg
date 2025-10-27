@@ -123,27 +123,47 @@ class jk_hyp():
         ###
         # The matrices need to be transitive - this should be all of them. #
         ###
-        hyp_ind = 0
-        for diag_on in powerset(range(self.jk_data.num_dat)):
-            N_on = len(diag_on)
-            if N_on == 0:  # Null hypothesis - all 0 cov. matrix
-                hyp_ind += 1
-            elif self.mode == "partition":
-                parts = set_partitions(diag_on)  # Set of partitionings
-                for part in parts:  # Loop over partitionings
+        if self.mode == "diagonal with negative":
+            possible_biases = []
+            for i in range(self.jk_data.num_dat):
+                possible_biases.append([0, bias_mean[i], -bias_mean[i]])
+
+            # Creating all combinations of bias means
+            all_bias_combinations = np.array(np.meshgrid(*possible_biases)).T.reshape(-1, self.jk_data.num_dat)
+            
+            # Assigning bias means and covariances for each hypothesis
+            for hyp_ind, bias_comb in enumerate(all_bias_combinations):
+
+                has_positive = any(b > 0 for b in bias_comb)
+                has_negative = any(b < 0 for b in bias_comb)
+                
+                if has_positive and has_negative:
+                    bias_comb = bias_comb / 2
+                bias_cov_hyp = np.diag([0.01 if val != 0 else 0 for val in bias_comb])  # Covariance matrix for this hypothesis
+                bias_cov_final[hyp_ind] = bias_cov_hyp
+                bias_mean_final[hyp_ind] = bias_comb
+        else:
+            hyp_ind = 0
+            for diag_on in powerset(range(self.jk_data.num_dat)):
+                N_on = len(diag_on)
+                if N_on == 0:  # Null hypothesis - all 0 cov. matrix
+                    hyp_ind += 1
+                elif self.mode == "partition":
+                    parts = set_partitions(diag_on)  # Set of partitionings
+                    for part in parts:  # Loop over partitionings
+                        bias_cov_final[hyp_ind, diag_on, diag_on] = bias_cov[np.array(diag_on)]
+                        for sub_part in part:  # Loop over compartments to correlate them
+                            off_diags = combinations(sub_part, 2)  # Get off-diagonal indices for this compartment
+                            for pair in off_diags:  # Fill off-diagonal indices for this compartment
+                                off_diag_val = np.sqrt(bias_cov[pair[0]] * bias_cov[pair[1]])
+                                bias_cov_final[hyp_ind, pair[0], pair[1]] = off_diag_val
+                                bias_cov_final[hyp_ind, pair[1], pair[0]] = off_diag_val
+                        bias_mean_final[hyp_ind, diag_on] = bias_mean[np.array(diag_on)]
+                        hyp_ind += 1
+                else:  # Mode must be diagonal
                     bias_cov_final[hyp_ind, diag_on, diag_on] = bias_cov[np.array(diag_on)]
-                    for sub_part in part:  # Loop over compartments to correlate them
-                        off_diags = combinations(sub_part, 2)  # Get off-diagonal indices for this compartment
-                        for pair in off_diags:  # Fill off-diagonal indices for this compartment
-                            off_diag_val = np.sqrt(bias_cov[pair[0]] * bias_cov[pair[1]])
-                            bias_cov_final[hyp_ind, pair[0], pair[1]] = off_diag_val
-                            bias_cov_final[hyp_ind, pair[1], pair[0]] = off_diag_val
                     bias_mean_final[hyp_ind, diag_on] = bias_mean[np.array(diag_on)]
                     hyp_ind += 1
-            else:  # Mode must be diagonal
-                bias_cov_final[hyp_ind, diag_on, diag_on] = bias_cov[np.array(diag_on)]
-                bias_mean_final[hyp_ind, diag_on] = bias_mean[np.array(diag_on)]
-                hyp_ind += 1
 
 
         return(bias_mean_final, bias_cov_final)
