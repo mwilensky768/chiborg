@@ -46,7 +46,7 @@ class jk_hyp():
                 the user will supply the specific means and covariances of the
                 bias hypotheses.
         """
-        valid_modes = ["diagonal", "partition", "manual"]
+        valid_modes = ["diagonal", "partition", "manual", "diagonal with negative"]
         if mode not in valid_modes:
             raise ValueError(f"mode keyword must be one of {valid_modes}")
         self.mode = mode
@@ -94,6 +94,8 @@ class jk_hyp():
             num_hyp = B[M]
         elif self.mode == 'diagonal':
             num_hyp = 2**(self.jk_data.num_dat)
+        elif self.mode == "diagonal with negative":
+            num_hyp = 3**(self.jk_data.num_dat)
         else:
             num_hyp = len(bias_cov)
         return(num_hyp)
