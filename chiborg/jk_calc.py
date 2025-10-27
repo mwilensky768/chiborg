@@ -7,7 +7,7 @@ import warnings
 
 class jk_calc():
 
-    def __init__(self, jk_hyp, analytic=True):
+    def __init__(self, jk_hyp, analytic=True, calc_on_init=True):
         """
         Class for containing jackknife parameters and doing calculations of
         various test statistics.
@@ -22,6 +22,7 @@ class jk_calc():
 
         jk_hyp_cov_min = np.amin(np.diag(self.jk_hyp.bias_prior.cov[-1]))
         jk_data_cov_min = np.amin(np.diag(self.jk_hyp.jk_data.noise_cov))
+        self.integration_errors = [] 
         if jk_hyp_cov_min > 1e8 * jk_data_cov_min:
             warnings.warn("Bias prior is sufficiently large compared to error"
                           " bar to produce floating point roundoff errors. The"
@@ -35,10 +36,11 @@ class jk_calc():
             raise ValueError("Must use Gaussian prior if asking for analytic "
                              "marginalization.")
 
-        self.like, self.marg_mean, self.marg_cov, self.entropy = self.get_like()
-        self.sum_entropy = self.jk_hyp.hyp_prior @ self.entropy
-        self.evid = self.get_evidence()
-        self.post = self.get_post()
+        if calc_on_init:
+            self.like, self.marg_mean, self.marg_cov, self.entropy = self.get_like()
+            self.sum_entropy = self.jk_hyp.hyp_prior @ self.entropy
+            self.evid = self.get_evidence()
+            self.post = self.get_post()
 
     def get_like(self):
         """
